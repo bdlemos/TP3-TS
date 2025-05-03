@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+import errno
+
+from fuse import FUSE, FuseOSError, Operations
+from auth import get_user_clearance
+
+SECURITY_LEVELS = ["UNCLASSIFIED", "CONFIDENTIAL", "SECRET", "TOP_SECRET"]
+
+class SecurePassthrough(Operations):
+    def __init__(self, root):
+        self.root = root
+        self.user_level = get_user_clearance()
+        print(f"[INFO] Usuário com nível: {self.user_level}")
+
+    def _full_path(self, partial):
+        if partial.startswith("/"):
+            partial = partial[1:]
+        return os.path.join(self.root, partial)
+
+    def get_file_level(self, path):
+        print(f"[INFO] Verificando nível de segurança do arquivo: {path}")
+        for level in SECURITY_LEVELS:
+            if f"/{level.lower()}" in path.lower():
+                return level
+        return "UNCLASSIFIED"
+
+    # Filesystem methods
+
+    def access(self, path, mode):
+        full_path = self._full_path(path)
+        file_level = self.get_file_level(full_path)
+        if SECURITY_LEVELS.index(self.user_level) < SECURITY_LEVELS.index(file_level):
+            raise FuseOSError(errno.EACCES)
+        if not os.access(full_path, mode):
+            raise FuseOSError(errno.EACCES)
+
+    def getattr(self, path, fh=None):
+        full_path = self._full_path(path)
+        st = os.lstat(full_path)
+        return dict((key, getattr(st, key)) for key in (
+            'st_atime', 'st_ctime', 'st_gid', 'st_mode', 'st_mtime',
+            'st_nlink', 'st_size', 'st_uid'))
+
+    def readdir(self, path, fh):
+        full_path = self._full_path(path)
+        print(f"[INFO] Lendo diretório: {full_path}")
+        dirents = ['.', '..']
+        if os.path.isdir(full_path):
+            for name in os.listdir(full_path):
+                full_item = os.path.join(full_path, name)
+                file_level = self.get_file_level(full_item)
+                if SECURITY_LEVELS.index(self.user_level) >= SECURITY_LEVELS.index(file_level):
+                    dirents.append(name)
+        for r in dirents:
+            yield r
+
+    def read(self, path, length, offset, fh):
+        file_level = self.get_file_level(path)
+        print(f"[INFO] Lendo arquivo: {path} com nível: {file_level}")
+        if SECURITY_LEVELS.index(self.user_level) < SECURITY_LEVELS.index(file_level):
+            raise FuseOSError(errno.EACCES)  # No read up
+        os.lseek(fh, offset, os.SEEK_SET)
+        return os.read(fh, length)
+
+    def write(self, path, buf, offset, fh):
+        file_level = self.get_file_level(path)
+        if SECURITY_LEVELS.index(self.user_level) > SECURITY_LEVELS.index(file_level):
+            raise FuseOSError(errno.EACCES)  # No write down
+        os.lseek(fh, offset, os.SEEK_SET)
+        return os.write(fh, buf)
+
+    def open(self, path, flags):
+        full_path = self._full_path(path)
+        return os.open(full_path, flags)
+
+    def create(self, path, mode, fi=None):
+        file_level = self.get_file_level(path)
+        if SECURITY_LEVELS.index(self.user_level) > SECURITY_LEVELS.index(file_level):
+            raise FuseOSError(errno.EACCES)
+        full_path = self._full_path(path)
+        return os.open(full_path, os.O_WRONLY | os.O_CREAT, mode)
+
+    def unlink(self, path):
+        file_level = self.get_file_level(path)
+        if SECURITY_LEVELS.index(self.user_level) < SECURITY_LEVELS.index(file_level):
+            raise FuseOSError(errno.EACCES)  # No delete up
+        return os.unlink(self._full_path(path))
+
+def main(mountpoint, root):
+    FUSE(SecurePassthrough(root), mountpoint, nothreads=True, foreground=True)
+
+if __name__ == '__main__':
+    if len(sys.argv) != 3:
+        print("Uso: python fuse_main.py <diretório_de_origem> <ponto_de_montagem>")
+        exit(1)
+    main(sys.argv[2], sys.argv[1])
