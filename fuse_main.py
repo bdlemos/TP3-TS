@@ -21,7 +21,7 @@ class SecurePassthrough(Operations):
         return os.path.join(self.root, partial)
 
     def get_file_level(self, path):
-        print(f"[INFO] Verificando nível de segurança do arquivo: {path}")
+        # print(f"[INFO] Verificando nível de segurança do arquivo: {path}")
         for level in SECURITY_LEVELS:
             if f"/{level.lower()}" in path.lower():
                 return level
@@ -33,6 +33,7 @@ class SecurePassthrough(Operations):
         full_path = self._full_path(path)
         file_level = self.get_file_level(full_path)
         if SECURITY_LEVELS.index(self.user_level) < SECURITY_LEVELS.index(file_level):
+            print(f"[INFO] Acesso negado ao arquivo: {full_path} com nível: {file_level}")
             raise FuseOSError(errno.EACCES)
         if not os.access(full_path, mode):
             raise FuseOSError(errno.EACCES)
@@ -46,14 +47,14 @@ class SecurePassthrough(Operations):
 
     def readdir(self, path, fh):
         full_path = self._full_path(path)
-        print(f"[INFO] Lendo diretório: {full_path}")
         dirents = ['.', '..']
         if os.path.isdir(full_path):
-            for name in os.listdir(full_path):
-                full_item = os.path.join(full_path, name)
-                file_level = self.get_file_level(full_item)
-                if SECURITY_LEVELS.index(self.user_level) >= SECURITY_LEVELS.index(file_level):
+            file_level = self.get_file_level(full_path)
+            if SECURITY_LEVELS.index(self.user_level) >= SECURITY_LEVELS.index(file_level):
+                for name in os.listdir(full_path):
                     dirents.append(name)
+            else:
+                print(f"[INFO] Acesso negado ao diretorio: {full_path} com nível: {file_level}")
         for r in dirents:
             yield r
 
