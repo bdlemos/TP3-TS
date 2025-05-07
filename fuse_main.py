@@ -32,6 +32,8 @@ class SecurePassthrough(Operations):
     def access(self, path, mode):
         # Um usuário não pode acessar arquivos com nível superior ao seu
         # Se o arquivo não existir, o acesso é negado
+        self.user_level = get_user_clearance()
+
         full_path = self._full_path(path)
         file_level = self.get_file_level(full_path)
         if SECURITY_LEVELS.index(self.user_level) < SECURITY_LEVELS.index(file_level):
@@ -52,6 +54,8 @@ class SecurePassthrough(Operations):
 
     def readdir(self, path, fh):
         # Um usuário não pode listar arquivos/diretorios com nível superior ao seu
+        self.user_level = get_user_clearance()
+
         full_path = self._full_path(path)
         dirents = ['.', '..']
         if os.path.isdir(full_path):
@@ -66,6 +70,8 @@ class SecurePassthrough(Operations):
 
     def read(self, path, length, offset, fh):
         # Um usuario pode ler arquivos com nível igual ou inferior ao seu, mas nao pode acessar arquivos/diretorios com nível superior
+        self.user_level = get_user_clearance()
+
         file_level = self.get_file_level(path)
         print(f"[INFO][Read] Lendo arquivo: {path} com nível: {file_level}")
         if SECURITY_LEVELS.index(self.user_level) < SECURITY_LEVELS.index(file_level):
@@ -75,6 +81,8 @@ class SecurePassthrough(Operations):
 
     def write(self, path, buf, offset, fh):
         # Um usuario pode escrever em arquivos com nível igual ou superior ao seu, mas nao pode escrever arquivos/diretorios com nível superior
+        self.user_level = get_user_clearance()
+
         file_level = self.get_file_level(path)
         if SECURITY_LEVELS.index(self.user_level) > SECURITY_LEVELS.index(file_level):
             print(f"[INFO][Write] Acesso negado ao arquivo: {path} com nível: {file_level}")
@@ -84,6 +92,8 @@ class SecurePassthrough(Operations):
 
     def open(self, path, flags):
         # Um usuario pode abrir arquivos com nível igual ou inferior ao seu, mas nao pode acabriressar arquivos/diretorios com nível superior
+        self.user_level = get_user_clearance()
+
         full_path = self._full_path(path)
         file_level = self.get_file_level(full_path)
         if SECURITY_LEVELS.index(self.user_level) < SECURITY_LEVELS.index(file_level):
@@ -93,6 +103,8 @@ class SecurePassthrough(Operations):
 
     def create(self, path, mode, fi=None):
         # Um usuario pode criar arquivos com nível igual ou superior ao seu, mas nao pode criar arquivos/diretorios com nível inferior
+        self.user_level = get_user_clearance()
+
         file_level = self.get_file_level(path)
         if SECURITY_LEVELS.index(self.user_level) > SECURITY_LEVELS.index(file_level):
             print(f"[INFO][Create] Acesso negado ao arquivo: {path} com nível: {file_level}")
@@ -101,6 +113,8 @@ class SecurePassthrough(Operations):
         return os.open(full_path, os.O_WRONLY | os.O_CREAT, mode)
 
     def unlink(self, path):
+        self.user_level = get_user_clearance()
+    
         file_level = self.get_file_level(path)
         if SECURITY_LEVELS.index(self.user_level) < SECURITY_LEVELS.index(file_level):
             raise FuseOSError(errno.EACCES)  # No delete up

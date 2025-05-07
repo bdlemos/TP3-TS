@@ -1,8 +1,8 @@
 # auth.py
 import os
 from dotenv import load_dotenv
-load_dotenv(override=True)
 
+load_dotenv(override=True)
 
 user_clearance = {
     "bernardo": "SECRET",
@@ -11,6 +11,6 @@ user_clearance = {
 }
 
 def get_user_clearance():
-    # stub para testes; depois integrar com autenticação real
-    print(os.getenv("USER"))
-    return user_clearance.get(os.getenv("USER"), "UNCLASSIFIED")
+    user = os.getenv("USER", "default")
+    print(f"[DEBUG] Usuário autenticado: {user}")
+    return user_clearance.get(user, "UNCLASSIFIED")
