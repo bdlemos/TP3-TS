@@ -23,7 +23,7 @@ Este projeto foi desenvolvido como parte do Trabalho Prático 3, que visa explor
 * **Autenticação de Utilizador:**
     * Simulada através de uma variável de ambiente `USER` definida num ficheiro `.env`.
     * O cliente permite "fazer login" para definir este utilizador.
-    * Níveis de autorização e status de "trusted" são definidos no ficheiro `auth.py`.
+    * Níveis de autorização e status de "trusted" são definidos no ficheiro `users.json`.
 * **Cliente Interativo (Shell):**
     * Interface de linha de comandos (`client.py`) para interagir com o sistema de ficheiros seguro.
     * Comandos suportados:
@@ -52,15 +52,16 @@ Este projeto foi desenvolvido como parte do Trabalho Prático 3, que visa explor
 ├── auth.py             # Lógica de autenticação e níveis de autorização dos utilizadores
 ├── client.py           # Aplicação cliente interativa (shell)
 ├── data/               # Diretório de exemplo com ficheiros e subdiretórios classificados
-│   └── secure_files/
-│       ├── confidential/
-│       │   └── conf.txt
-│       ├── secret/
-│       │   └── secret.txt
-│       ├── top_secret/
-│       │   └── top.txt
-│       └── unclassified/
-│           └── info.txt
+│   ├── secure_files/
+│   │    ├── confidential/
+│   │    │   └── conf.txt
+│   │    ├── secret/
+│   │    │   └── secret.txt
+│   │    ├── top_secret/
+│   │    │   └── top.txt
+│   │    └── unclassified/
+│   │        └── info.txt
+│   └──users.json
 ├── fuse_main.py        # Implementação principal do sistema de ficheiros FUSE
 ├── logger.py           # Módulo para registo de auditoria
 ├── README.md           # Este ficheiro
