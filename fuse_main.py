@@ -3,7 +3,7 @@ import sys
 import errno
 
 from fuse import FUSE, FuseOSError, Operations
-from auth import get_user_credentials # Alterado para get_user_credentials
+from auth import get_user_credentials
 from logger import log_action
 
 SECURITY_LEVELS = ["UNCLASSIFIED", "CONFIDENTIAL", "SECRET", "TOP_SECRET"]
@@ -11,7 +11,6 @@ SECURITY_LEVELS = ["UNCLASSIFIED", "CONFIDENTIAL", "SECRET", "TOP_SECRET"]
 class SecurePassthrough(Operations):
     def __init__(self, root):
         self.root = root
-        print(f"[INFO] Inicializando SecurePassthrough com root: {self.root}")
         # As credenciais do usuário são obtidas por operação para refletir mudanças no .env
 
     def _get_current_user_credentials(self):
@@ -81,14 +80,8 @@ class SecurePassthrough(Operations):
     def getattr(self, path, fh=None):
         user_level, _ = self._get_current_user_credentials()
         full_path = self._full_path(path)
-        
-        file_level = self.get_file_level(full_path)
 
-        # Política: Usuário só pode obter atributos de ficheiros/diretórios que ele pode "ver"
-        # (nível igual ou inferior).
-        if SECURITY_LEVELS.index(user_level) < SECURITY_LEVELS.index(file_level):
-            log_action("getattr", f"{user_level} (user)", full_path, f"DENIED (File Level: {file_level} - Higher)")
-            raise FuseOSError(errno.EACCES) # Ou ENOENT para esconder a existência
+        # Política: Usuário pode obter atributos de ficheiros/diretórios de qualquer nivel, mas nao consegue aceder o conteudo
 
         try:
             st = os.lstat(full_path)
@@ -106,14 +99,9 @@ class SecurePassthrough(Operations):
         # Lista o conteúdo de um diretório.
         user_level, _ = self._get_current_user_credentials()
         full_path = self._full_path(path)
-        
-        dir_level = self.get_file_level(full_path)
+    
 
-        # Usuário só pode listar diretórios de nível igual ou inferior ao seu.
-        if SECURITY_LEVELS.index(user_level) < SECURITY_LEVELS.index(dir_level):
-            log_action("readdir", f"{user_level} (user)", full_path, f"DENIED (Dir Level: {dir_level} - Higher)")
-            # O acesso aos ficheiros individuais será bloqueado por 'access' ou 'getattr'.
-            return
+        # Usuário pode listar diretórios diretorios com qualquer nivel, para caso queira escrever para cima
 
         dirents = ['.', '..']
         if os.path.isdir(full_path):
@@ -122,11 +110,12 @@ class SecurePassthrough(Operations):
                 for name in entries:
                     entry_full_path = os.path.join(full_path, name)
                     entry_level = self.get_file_level(entry_full_path)
-                    # Adiciona à listagem apenas se o nível do usuário for >= ao nível da entrada
+                    # Adiciona à listagem sempre, mas se o nível do usuário for inferior ao nível do diretório, adiciona um log
                     if SECURITY_LEVELS.index(user_level) >= SECURITY_LEVELS.index(entry_level):
                         dirents.append(name)
                     else:
-                        log_action("readdir_entry_filter", f"{user_level} (user)", entry_full_path, f"HIDDEN (Entry Level: {entry_level} - Higher)")
+                        log_action("readdir_entry_filter", f"{user_level} (user)", entry_full_path, f"GRANTED (Entry Level: {entry_level} - Higher)")
+                        dirents.append(f"{name}")
                 log_action("readdir", f"{user_level} (user)", full_path, "GRANTED")
             except OSError as e:
                 log_action("readdir", f"{user_level} (user)", full_path, f"ERROR_OS (Listing failed: {e.strerror})")
@@ -212,7 +201,7 @@ class SecurePassthrough(Operations):
         try:
             os.lseek(fh, offset, os.SEEK_SET) # O kernel lida com O_APPEND aqui.
             bytes_written = os.write(fh, buf)
-            # log_action("write", f"{user_level} (user) fh:{fh}", f"path hint:{path}", f"GRANTED (Wrote {bytes_written} bytes)")
+            log_action("write", f"{user_level} (user) fh:{fh}", f"path hint:{path}", f"GRANTED (Wrote {bytes_written} bytes)")
             return bytes_written
         except OSError as e:
             log_action("write", f"{user_level} (user) fh:{fh}", f"path hint:{path}", f"ERROR_OS ({e.strerror})")
