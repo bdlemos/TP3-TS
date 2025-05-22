@@ -67,3 +67,25 @@ Este projeto foi desenvolvido como parte do Trabalho Prático 3, que visa explor
 └── .env                # Ficheiro (criado pelo cliente) para armazenar o USER atual (não versionar)
 └── audit.log           # Ficheiro de log de auditoria (criado em tempo de execução)
 ```
+## Como Executar
+
+A execução envolve dois processos principais: o servidor FUSE e o cliente.
+
+1.  **Iniciar o Servidor FUSE (`fuse_main.py`):**
+    Abra um terminal e execute:
+    ```bash
+    make run
+    ```
+    * O processo FUSE ficará em execução em primeiro plano (`foreground=True`). Mantenha este terminal aberto.
+
+2.  **Executar o Cliente (`client.py`):**
+    Abra **outro** terminal e execute:
+    ```bash
+    python3 client.py
+    ```
+    * O cliente solicitará o nome de utilizador para "login". Utilizadores e os seus níveis/status de confiança estão definidos em `auth.py` (ex: `admin`, `bernardo`, `joao`).
+    * Após o login, pode usar os comandos do cliente (ls, cd, cat, etc.) para interagir com os ficheiros em `/tmp/montagem`.
+
+3.  **Para parar o sistema:**
+    * No terminal do cliente, digite `exit`.
+    * No terminal do servidor FUSE, pressione `Ctrl+C` para desmontar o sistema de ficheiros e terminar o processo.
