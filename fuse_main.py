@@ -6,6 +6,7 @@ import errno
 
 from fuse import FUSE, FuseOSError, Operations
 from auth import get_user_clearance
+from logger import log_action
 
 SECURITY_LEVELS = ["UNCLASSIFIED", "CONFIDENTIAL", "SECRET", "TOP_SECRET"]
 
@@ -37,7 +38,7 @@ class SecurePassthrough(Operations):
         full_path = self._full_path(path)
         file_level = self.get_file_level(full_path)
         if SECURITY_LEVELS.index(self.user_level) < SECURITY_LEVELS.index(file_level):
-            print(f"[INFO][Access] Acesso negado ao arquivo: {full_path} com nível: {file_level}")
+            log_action("access", self.user_level, full_path, "DENIED")
             raise FuseOSError(errno.EACCES)
         if not os.access(full_path, mode):
             raise FuseOSError(errno.EACCES)
@@ -46,7 +47,7 @@ class SecurePassthrough(Operations):
         # Um usuário pode saber os atributos de qualquer arquivos/diretorios 
         full_path = self._full_path(path)
         st = os.lstat(full_path)
-        print(f"[INFO][Getattr] Atributos do diretório: {full_path}")
+        log_action("getattr", self.user_level, full_path, "GRANTED")
         
         return dict((key, getattr(st, key)) for key in (
             'st_atime', 'st_ctime', 'st_gid', 'st_mode', 'st_mtime',
@@ -64,7 +65,7 @@ class SecurePassthrough(Operations):
                 for name in os.listdir(full_path):
                     dirents.append(name)
             else:
-                print(f"[INFO][Readdir] Acesso negado ao diretorio: {full_path} com nível: {file_level}")
+                log_action("readdir", self.user_level, full_path, "DENIED")
         for r in dirents:
             yield r
 
@@ -75,6 +76,7 @@ class SecurePassthrough(Operations):
         file_level = self.get_file_level(path)
         print(f"[INFO][Read] Lendo arquivo: {path} com nível: {file_level}")
         if SECURITY_LEVELS.index(self.user_level) < SECURITY_LEVELS.index(file_level):
+            log_action("read", self.user_level, path, "DENIED")
             raise FuseOSError(errno.EACCES)  # No read up
         os.lseek(fh, offset, os.SEEK_SET)
         return os.read(fh, length)
@@ -85,7 +87,7 @@ class SecurePassthrough(Operations):
 
         file_level = self.get_file_level(path)
         if SECURITY_LEVELS.index(self.user_level) > SECURITY_LEVELS.index(file_level):
-            print(f"[INFO][Write] Acesso negado ao arquivo: {path} com nível: {file_level}")
+            log_action("write", self.user_level, path, "DENIED")
             raise FuseOSError(errno.EACCES)  # No write down
         os.lseek(fh, offset, os.SEEK_SET)
         return os.write(fh, buf)
@@ -97,7 +99,7 @@ class SecurePassthrough(Operations):
         full_path = self._full_path(path)
         file_level = self.get_file_level(full_path)
         if SECURITY_LEVELS.index(self.user_level) < SECURITY_LEVELS.index(file_level):
-            print(f"[INFO][Open] Acesso negado ao arquivo: {full_path} com nível: {file_level}")
+            log_action("open", self.user_level, full_path, "DENIED")
             raise FuseOSError(errno.EACCES)
         return os.open(full_path, flags)
 
@@ -107,7 +109,7 @@ class SecurePassthrough(Operations):
 
         file_level = self.get_file_level(path)
         if SECURITY_LEVELS.index(self.user_level) > SECURITY_LEVELS.index(file_level):
-            print(f"[INFO][Create] Acesso negado ao arquivo: {path} com nível: {file_level}")
+            log_action("create", self.user_level, path, "DENIED")
             raise FuseOSError(errno.EACCES) # No create down
         full_path = self._full_path(path)
         return os.open(full_path, os.O_WRONLY | os.O_CREAT, mode)
@@ -117,6 +119,7 @@ class SecurePassthrough(Operations):
     
         file_level = self.get_file_level(path)
         if SECURITY_LEVELS.index(self.user_level) < SECURITY_LEVELS.index(file_level):
+            log_action("unlink", self.user_level, path, "DENIED")
             raise FuseOSError(errno.EACCES)  # No delete up
         return os.unlink(self._full_path(path))
 
