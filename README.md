@@ -2,13 +2,13 @@
 
 ## Descrição do Projeto
 
-Este projeto implementa um sistema de ficheiros seguro utilizando FUSE (Filesystem in Userspace) em Python. O objetivo é aplicar um modelo de controlo de acesso baseado nos princípios do Bell-LaPadula (BLP), focado na confidencialidade da informação em sistemas com múltiplos níveis de segurança. [cite: 5]
+Este projeto implementa um sistema de ficheiros seguro utilizando FUSE (Filesystem in Userspace) em Python. O objetivo é aplicar um modelo de controlo de acesso baseado nos princípios do Bell-LaPadula (BLP), focado na confidencialidade da informação em sistemas com múltiplos níveis de segurança.
 
 O sistema de ficheiros virtualiza o acesso a um diretório existente no sistema operativo, aplicando regras de segurança que determinam se um utilizador pode ler, escrever, criar ou listar ficheiros e diretórios com base no seu nível de autorização (clearance) e no nível de classificação da informação.
 
-Foram implementadas adaptações ao modelo BLP clássico, como a introdução de "utilizadores de confiança" (trusted users) que possuem privilégios para realizar operações de "write-down" (escrever informação de um nível superior para um inferior), simulando um processo de desclassificação controlada. [cite: 5] Todas as ações significativas são registadas num ficheiro de auditoria.
+Foram implementadas adaptações ao modelo BLP clássico, como a introdução de "utilizadores de confiança" (trusted users) que possuem privilégios para realizar operações de "write-down" (escrever informação de um nível superior para um inferior), simulando um processo de desclassificação controlada. Todas as ações significativas são registadas num ficheiro de auditoria.
 
-Este projeto foi desenvolvido como parte do Trabalho Prático 3, que visa explorar e implementar adaptações ao modelo Bell-LaPadula para endereçar algumas das suas limitações práticas. [cite: 5]
+Este projeto foi desenvolvido como parte do Trabalho Prático 3, que visa explorar e implementar adaptações ao modelo Bell-LaPadula para endereçar algumas das suas limitações práticas.
 
 ## Funcionalidades Principais
 
