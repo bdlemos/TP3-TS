@@ -255,12 +255,7 @@ def main(mountpoint, root):
     
     # Uma chamada inicial para get_user_credentials para verificar o estado ao iniciar o FUSE.
     # O usuário real para as operações FUSE será determinado pelo .env no momento da operação.
-    initial_user_env = os.getenv('USER', 'NÃO DEFINIDO')
-    if initial_user_env != 'NÃO DEFINIDO':
-        initial_level, initial_trusted = get_user_credentials() # Usa o .env se existir
-        print(f"[INFO] Usuário no ambiente no arranque do FUSE ('USER={initial_user_env}'): Nível '{initial_level}', Trusted: {initial_trusted}")
-    else:
-        print("[INFO] Variável de ambiente USER não definida no arranque do FUSE. O login via cliente definirá o usuário para as operações.")
+    print("[INFO] Variável de ambiente USER não definida no arranque do FUSE. O login via cliente definirá o usuário para as operações.")
 
     FUSE(SecurePassthrough(root), mountpoint, nothreads=True, foreground=True)
     print("[INFO] Sistema de ficheiros FUSE desmontado.")

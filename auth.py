@@ -1,13 +1,7 @@
 # auth.py
 import os
+import json
 from dotenv import load_dotenv # load_dotenv é chamado dentro da função get_user_credentials
-
-user_clearance_data = {
-    "bernardo": {"level": "SECRET", "trusted": False},
-    "admin": {"level": "TOP_SECRET", "trusted": True},
-    "joao": {"level": "CONFIDENTIAL", "trusted": False},
-    "default_user": {"level": "UNCLASSIFIED", "trusted": False} 
-}
 
 def get_user_credentials():
     # Mova load_dotenv para aqui para garantir que é chamado a cada vez
@@ -15,9 +9,11 @@ def get_user_credentials():
     load_dotenv(override=True) 
     
     user_name = os.getenv("USER", "default_user") 
-    # O print de debug já estava aqui, o que é bom.
     # print(f"[DEBUG] auth.py - Usuário autenticado: {user_name}") 
     
+    #read users from a json file
+    with open("data/users.json", "r") as f:
+        user_clearance_data = json.load(f)
     credentials = user_clearance_data.get(user_name)
     
     if credentials:

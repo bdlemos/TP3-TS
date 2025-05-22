@@ -1,0 +1,6 @@
+{
+    "bernardo": {"level": "SECRET", "trusted": false},
+    "admin": {"level": "TOP_SECRET", "trusted": true},
+    "joao": {"level": "CONFIDENTIAL", "trusted": false},
+    "default_user": {"level": "UNCLASSIFIED", "trusted": false}
+}
