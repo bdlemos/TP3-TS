@@ -1,6 +1,7 @@
 import os
 import shutil # Não usado diretamente, mas pode ser útil para futuras operações de ficheiro
 import readline # Para melhor input, histórico de comandos
+from dotenv import load_dotenv # Para carregar variáveis de ambiente do ficheiro .env
 
 MOUNTPOINT = "/tmp/montagem" # Ponto de montagem para o sistema de ficheiros FUSE
 
@@ -17,6 +18,7 @@ def get_current_os_path():
 
 def get_prompt():
     """Gera o prompt a ser exibido ao usuário, mostrando o diretório atual."""
+    load_dotenv(override=True) # Carrega as variáveis de ambiente do .env
     display_path = "/" + current_relative_path if current_relative_path else "/"
     user = os.getenv("USER", "unknown")
     return f"{user}@{MOUNTPOINT}{display_path}$ "
@@ -137,12 +139,11 @@ def change_directory(path_str):
     # print(f"Diretório atual alterado para: {MOUNTPOINT}/{current_relative_path if current_relative_path else ''}")
 
 
-def read_file():
+def read_file(path_input):
     """
     Solicita o caminho de um ficheiro e tenta ler e exibir o seu conteúdo.
     O caminho é resolvido a partir do diretório atual.
     """
-    path_input = input("Caminho do ficheiro para ler: ")
     resolved_relative_path = resolve_path(path_input)
     full_os_path = get_full_path_in_os(resolved_relative_path)
     
@@ -184,9 +185,6 @@ def write_file_or_append(mode):
     parent_dir_os_path = os.path.dirname(full_os_path)
     if not os.path.exists(parent_dir_os_path):
         print(f"[ERRO] Diretório pai não existe: {parent_dir_os_path}")
-        return
-    if not os.access(parent_dir_os_path, os.W_OK | os.X_OK):
-        print(f"[ERRO] Sem permissão de escrita/execução no diretório pai: {parent_dir_os_path}")
         return
     
     # Se o ficheiro já existe e é um diretório, não podemos escrever/anexar.
@@ -275,7 +273,7 @@ def main():
                 if not args:
                     print("Uso: cat <ficheiro>")
                 else:
-                    read_file() 
+                    read_file(args[0]) 
             elif command == "new":
                 write_file_or_append(mode="w")
             elif command == "add":
