@@ -64,15 +64,6 @@ class SecurePassthrough(Operations):
             log_action("access", f"{user_level} (user)", full_path, f"DENIED (File Level: {file_level} - Higher)")
             raise FuseOSError(errno.EACCES)
         
-        # Verifica o acesso no sistema de ficheiros subjacente
-        # Isto pode apanhar permissões Unix tradicionais, se aplicável, ou se o ficheiro não existe.
-        if not os.access(full_path, mode):
-            # Se os.access falhar, pode ser por não existência ou permissões Unix.
-            # Se o ficheiro não existir, lstat em getattr ou open falhará com ENOENT.
-            # Se for permissão Unix, EACCES é apropriado.
-            status_detail = "NOT_FOUND" if not os.path.exists(full_path) else "OS_DENIED"
-            log_action("access", f"{user_level} (user)", full_path, f"DENIED (OS Level: {status_detail})")
-            raise FuseOSError(errno.EACCES) # Ou ENOENT se soubermos que não existe
         
         log_action("access", f"{user_level} (user)", full_path, "GRANTED")
         return 0 # Sucesso
@@ -86,10 +77,10 @@ class SecurePassthrough(Operations):
         try:
             st = os.lstat(full_path)
         except FileNotFoundError:
-            log_action("getattr", f"{user_level} (user)", full_path, "DENIED (File Not Found)")
+            # log_action("getattr", f"{user_level} (user)", full_path, "DENIED (File Not Found)")
             raise FuseOSError(errno.ENOENT)
             
-        log_action("getattr", f"{user_level} (user)", full_path, "GRANTED")
+        # log_action("getattr", f"{user_level} (user)", full_path, "GRANTED")
         
         return dict((key, getattr(st, key)) for key in (
             'st_atime', 'st_ctime', 'st_gid', 'st_mode', 'st_mtime',
@@ -164,7 +155,6 @@ class SecurePassthrough(Operations):
         # Agora, tenta abrir o ficheiro no sistema de ficheiros subjacente.
         try:
             fd = os.open(full_path, flags)
-            log_action("open", f"{user_level} (user)", full_path, "GRANTED (OS Open Succeeded)")
             return fd # Retorna o file descriptor
         except FileNotFoundError:
             # Se O_CREAT não estiver nas flags e o ficheiro não existir.
@@ -181,12 +171,10 @@ class SecurePassthrough(Operations):
         # As verificações de permissão de nível já foram feitas em open().
         user_level, _ = self._get_current_user_credentials() # Para logging
         
-        # O 'path' aqui é informativo, a operação real é sobre 'fh'.
-        log_action("read", f"{user_level} (user) fh:{fh}", f"path hint:{path}", "ATTEMPTING OS READ")
         try:
             os.lseek(fh, offset, os.SEEK_SET)
             data = os.read(fh, length)
-            # log_action("read", f"{user_level} (user) fh:{fh}", f"path hint:{path}", f"GRANTED (Read {len(data)} bytes)")
+            log_action("read", f"{user_level} (user) fh:{fh}", f"path hint:{path}", f"GRANTED (Read {len(data)} bytes)")
             return data
         except OSError as e:
             log_action("read", f"{user_level} (user) fh:{fh}", f"path hint:{path}", f"ERROR_OS ({e.strerror})")
@@ -197,7 +185,6 @@ class SecurePassthrough(Operations):
         # As verificações de permissão de nível já foram feitas em open().
         user_level, _ = self._get_current_user_credentials() # Para logging
 
-        log_action("write", f"{user_level} (user) fh:{fh}", f"path hint:{path}", "ATTEMPTING OS WRITE")
         try:
             os.lseek(fh, offset, os.SEEK_SET) # O kernel lida com O_APPEND aqui.
             bytes_written = os.write(fh, buf)
@@ -232,7 +219,6 @@ class SecurePassthrough(Operations):
         try:
             # O_TRUNC é importante para que 'create' se comporte como esperado (ficheiro novo/vazio)
             fd = os.open(full_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, mode)
-            log_action("create", f"{user_level} (user)", full_path, "SUCCESS (OS Create Succeeded)")
             return fd # Retorna o file descriptor
         except OSError as e:
             log_action("create", f"{user_level} (user)", full_path, f"ERROR_OS ({e.strerror})")
@@ -251,7 +237,6 @@ class SecurePassthrough(Operations):
     
         # Para este projeto, focar no BLP: se user_level >= file_level, a exclusão é permitida para confidencialidade.
         
-        log_action("unlink", f"{user_level} (user)", full_path, f"ATTEMPTING OS UNLINK (File Level: {file_level})")
         try:
             result = os.unlink(full_path)
             log_action("unlink", f"{user_level} (user)", full_path, "SUCCESS (OS Unlink Succeeded)")
@@ -261,15 +246,6 @@ class SecurePassthrough(Operations):
             raise FuseOSError(errno.ENOENT)
         except OSError as e:
             log_action("unlink", f"{user_level} (user)", full_path, f"ERROR_OS ({e.strerror})")
-            raise FuseOSError(e.errno)
-
-    def release(self, path, fh):
-        user_level, _ = self._get_current_user_credentials() # Para logging
-        log_action("release", f"{user_level} (user) fh:{fh}", f"path hint:{path}", "ATTEMPTING OS CLOSE")
-        try:
-            return os.close(fh)
-        except OSError as e:
-            log_action("release", f"{user_level} (user) fh:{fh}", f"path hint:{path}", f"ERROR_OS ({e.strerror})")
             raise FuseOSError(e.errno)
 
 
