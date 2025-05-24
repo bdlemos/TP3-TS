@@ -1,6 +1,5 @@
 import os
-import shutil # Não usado diretamente, mas pode ser útil para futuras operações de ficheiro
-import readline # Para melhor input, histórico de comandos
+import json
 from dotenv import load_dotenv # Para carregar variáveis de ambiente do ficheiro .env
 
 MOUNTPOINT = "/tmp/montagem" # Ponto de montagem para o sistema de ficheiros FUSE
@@ -247,9 +246,17 @@ def set_trust(user, value):
     try:
         with open(user_data_path, "r") as f:
             data = json.load(f)
-
         if user not in data:
             print(f"[ERRO] Utilizador '{user}' não encontrado.")
+            return
+        
+        actually_user = os.getenv("USER", "unknown")
+        if actually_user not in data:
+            print(f"[ERRO] Utilizador atual '{actually_user}' não encontrado no ficheiro de utilizadores.")
+            return
+        
+        if data[actually_user].get("level", "") != "TOP_SECRET" or not data[actually_user].get("trusted", False):
+            print("[ERRO] Apenas utilizadores TOP_SECRET e de confiança podem alterar o estado de confiança.")
             return
 
         if value.lower() not in ["true", "false"]:
@@ -311,14 +318,14 @@ def main():
                 login() 
             elif command == "pwd":
                 print(f"{MOUNTPOINT}/{current_relative_path if current_relative_path else ''}")
-            elif command == "exit":
-                print("A sair do cliente.")
-                break
             elif command == "settrust":
                 if len(args) != 2:
                     print("Uso: settrust <utilizador> <true|false>")
                 else:
                     set_trust(args[0], args[1])
+            elif command == "exit":
+                print("A sair do cliente.")
+                break
             else:
                 print(f"Comando inválido: {command}")
         except KeyboardInterrupt:
