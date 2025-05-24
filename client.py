@@ -239,6 +239,33 @@ def delete_file():
         print(f"[ERRO] Ocorreu um erro ao excluir o ficheiro: {e}")
 
 
+def set_trust(user, value):
+    """
+    Altera o estado 'trusted' de um utilizador no ficheiro users.json.
+    """
+    user_data_path = "data/users.json"
+    try:
+        with open(user_data_path, "r") as f:
+            data = json.load(f)
+
+        if user not in data:
+            print(f"[ERRO] Utilizador '{user}' não encontrado.")
+            return
+
+        if value.lower() not in ["true", "false"]:
+            print(f"[ERRO] Valor inválido para trusted: '{value}'. Usa 'true' ou 'false'.")
+            return
+
+        data[user]["trusted"] = value.lower() == "true"
+
+        with open(user_data_path, "w") as f:
+            json.dump(data, f, indent=4)
+        
+        print(f"[INFO] Estado de confiança de '{user}' atualizado para {data[user]['trusted']}.")
+    except Exception as e:
+        print(f"[ERRO] Ocorreu um erro ao atualizar o estado de confiança: {e}")
+
+
 def main():
     """
     Função principal do cliente: faz login e entra num loop de comandos.
@@ -287,6 +314,11 @@ def main():
             elif command == "exit":
                 print("A sair do cliente.")
                 break
+            elif command == "settrust":
+                if len(args) != 2:
+                    print("Uso: settrust <utilizador> <true|false>")
+                else:
+                    set_trust(args[0], args[1])
             else:
                 print(f"Comando inválido: {command}")
         except KeyboardInterrupt:

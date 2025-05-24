@@ -3,6 +3,8 @@ import os
 import json
 from dotenv import load_dotenv # load_dotenv é chamado dentro da função get_user_credentials
 
+USERS_FILE = "data/users.json"
+
 def get_user_credentials():
     # Mova load_dotenv para aqui para garantir que é chamado a cada vez
     # que as credenciais são pedidas, apanhando alterações no .env
@@ -12,7 +14,10 @@ def get_user_credentials():
     # print(f"[DEBUG] auth.py - Usuário autenticado: {user_name}") 
     
     #read users from a json file
-    with open("data/users.json", "r") as f:
+    if not os.path.exists(USERS_FILE):
+        return "UNCLASSIFIED", False
+    
+    with open(USERS_FILE, "r") as f:
         user_clearance_data = json.load(f)
     credentials = user_clearance_data.get(user_name)
     
@@ -24,3 +29,42 @@ def get_user_credentials():
     else:
         # print(f"[DEBUG] auth.py - Usuário '{user_name}' não encontrado, usando UNCLASSIFIED/False.")
         return "UNCLASSIFIED", False
+
+
+def get_current_user():
+    load_dotenv(override=True)
+    return os.getenv("USER", "default_user")
+
+
+def set_trust_status(current_user, target_user, new_status):
+    # Verificar se o utilizador atual tem permissão para alterar confiança
+    if not os.path.exists(USERS_FILE):
+        print("Ficheiro de utilizadores não encontrado.")
+        return False
+
+    with open(USERS_FILE, "r") as f:
+        users = json.load(f)
+
+    # Verifica permissões do utilizador atual
+    if (current_user not in users or not users[current_user].get("trusted", False) or users[current_user].get("level", "") != "TOP_SECRET"):
+        print("[ERRO] Apenas utilizadores TOP_SECRET e de confiança podem alterar níveis de confiança.")
+        return False
+
+    # Validação do novo valor
+    if new_status.lower() not in ("true", "false"):
+        print("[ERRO] Valor de confiança inválido. Use 'true' ou 'false'.")
+        return False
+
+    new_trust_value = new_status.lower() == "true"
+
+    if target_user not in users:
+        print(f"Utilizador '{target_user}' não encontrado.")
+        return False
+
+    users[target_user]["trusted"] = new_trust_value
+
+    with open(USERS_FILE, "w") as f:
+        json.dump(users, f, indent=4)
+
+    print(f"O utilizador '{target_user}' é agora {'trusted' if new_trust_value else 'não trusted'}.")
+    return True
