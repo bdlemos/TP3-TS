@@ -68,3 +68,45 @@ def set_trust_status(current_user, target_user, new_status):
 
     print(f"O utilizador '{target_user}' é agora {'trusted' if new_trust_value else 'não trusted'}.")
     return True
+
+
+def set_clearance_level(current_user, target_user, new_level):
+    # Verificar se o ficheiro existe
+    if not os.path.exists(USERS_FILE):
+        print("Ficheiro de utilizadores não encontrado.")
+        return False
+
+    with open(USERS_FILE, "r") as f:
+        users = json.load(f)
+
+    # Verifica se o utilizador atual é válido, trusted e existe
+    if (current_user not in users or not users[current_user].get("trusted", False)):
+        print("[ERRO] Apenas utilizadores de confiança podem alterar o nível de clearance.")
+        return False
+
+    current_level = users[current_user].get("level", "UNCLASSIFIED")
+    clearance_hierarchy = ["UNCLASSIFIED", "CONFIDENTIAL", "SECRET", "TOP_SECRET"]
+
+    if new_level.upper() not in clearance_hierarchy:
+        print("[ERRO] Nível de clearance inválido. Use: UNCLASSIFIED, CONFIDENTIAL, SECRET, TOP_SECRET.")
+        return False
+
+    if target_user not in users:
+        print(f"Utilizador '{target_user}' não encontrado.")
+        return False
+
+    target_level = users[target_user].get("level", "UNCLASSIFIED")
+
+    # Verifica se o current_user tem clearance superior ao alvo e superior ou igual ao novo nível
+    if (clearance_hierarchy.index(current_level) <= clearance_hierarchy.index(target_level) or
+        clearance_hierarchy.index(current_level) < clearance_hierarchy.index(new_level.upper()) == False):
+        print("[ERRO] Só é possível alterar o nível de utilizadores com clearance inferior ao seu, e para níveis iguais ou inferiores ao seu.")
+        return False
+
+    users[target_user]["level"] = new_level.upper()
+
+    with open(USERS_FILE, "w") as f:
+        json.dump(users, f, indent=4)
+
+    print(f"O utilizador '{target_user}' tem agora nível de clearance '{new_level.upper()}'.")
+    return True
