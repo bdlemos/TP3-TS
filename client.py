@@ -1,8 +1,6 @@
 import os
-import shutil # Não usado diretamente, mas pode ser útil para futuras operações de ficheiro
-import readline # Para melhor input, histórico de comandos
+import json
 from dotenv import load_dotenv # Para carregar variáveis de ambiente do ficheiro .env
-from auth import set_clearance_level, set_trust_status, get_current_user
 
 MOUNTPOINT = "/tmp/montagem" # Ponto de montagem para o sistema de ficheiros FUSE
 
@@ -240,22 +238,75 @@ def delete_file():
         print(f"[ERRO] Ocorreu um erro ao excluir o ficheiro: {e}")
 
 
-#usa a funçao do auth.py
 def set_trust(user, value):
     """
-    Wrapper para chamar a função de alteração de confiança do auth.py
+    Altera o estado 'trusted' de um utilizador no ficheiro users.json.
     """
-    current_user = get_current_user()
-    set_trust_status(current_user, user, value)
+    user_data_path = "data/users.json"
+    try:
+        with open(user_data_path, "r") as f:
+            data = json.load(f)
+        if user not in data:
+            print(f"[ERRO] Utilizador '{user}' não encontrado.")
+            return
+        
+        actually_user = os.getenv("USER", "unknown")
+        if actually_user not in data:
+            print(f"[ERRO] Utilizador atual '{actually_user}' não encontrado no ficheiro de utilizadores.")
+            return
+        
+        if data[actually_user].get("level", "") != "TOP_SECRET" or not data[actually_user].get("trusted", False):
+            print("[ERRO] Apenas utilizadores TOP_SECRET e de confiança podem alterar o estado de confiança.")
+            return
+
+        if value.lower() not in ["true", "false"]:
+            print(f"[ERRO] Valor inválido para trusted: '{value}'. Usa 'true' ou 'false'.")
+            return
+
+        data[user]["trusted"] = value.lower() == "true"
+
+        with open(user_data_path, "w") as f:
+            json.dump(data, f, indent=4)
+        
+        print(f"[INFO] Estado de confiança de '{user}' atualizado para {data[user]['trusted']}.")
+    except Exception as e:
+        print(f"[ERRO] Ocorreu um erro ao atualizar o estado de confiança: {e}")
 
 
-#usa a funçao do auth.py
-def set_clearance(user, new_level):
+def set_clearence(user, value):
     """
-    Wrapper para chamar a função de alteração de clearance do auth.py
+    Altera 'nivel' de um utilizador no ficheiro users.json.
     """
-    current_user = get_current_user()
-    set_clearance_level(current_user, user, new_level)
+    user_data_path = "data/users.json"
+    try:
+        with open(user_data_path, "r") as f:
+            data = json.load(f)
+        if user not in data:
+            print(f"[ERRO] Utilizador '{user}' não encontrado.")
+            return
+        
+        actually_user = os.getenv("USER", "unknown")
+        if actually_user not in data:
+            print(f"[ERRO] Utilizador atual '{actually_user}' não encontrado no ficheiro de utilizadores.")
+            return
+        
+        if data[actually_user].get("level", "") != "TOP_SECRET" or not data[actually_user].get("trusted", False):
+            print("[ERRO] Apenas utilizadores TOP_SECRET e de confiança podem alterar o estado de confiança.")
+            return
+
+        niveis_validos = ["PUBLIC", "CONFIDENTIAL", "SECRET", "TOP_SECRET"]
+        if value.upper() not in niveis_validos:
+            print(f"[ERRO] Nível de acesso inválido: '{value}'. Usa um dos seguintes: {', '.join(niveis_validos)}.")
+            return
+
+        data[user]["level"] = value.upper()
+
+        with open(user_data_path, "w") as f:
+            json.dump(data, f, indent=4)
+        
+        print(f"[INFO] Nível de acesso de '{user}' atualizado para {data[user]['level']}.")
+    except Exception as e:
+        print(f"[ERRO] Ocorreu um erro ao atualizar o nível de acesso: {e}")
 
 
 def main():
@@ -303,20 +354,19 @@ def main():
                 login() 
             elif command == "pwd":
                 print(f"{MOUNTPOINT}/{current_relative_path if current_relative_path else ''}")
-            elif command == "exit":
-                print("A sair do cliente.")
-                break
             elif command == "settrust":
                 if len(args) != 2:
                     print("Uso: settrust <utilizador> <true|false>")
                 else:
                     set_trust(args[0], args[1])
-            elif command == "setlevel":
+            elif command == "setclearence":
                 if len(args) != 2:
-                    print("Uso: setlevel <utilizador> <novo_nível>")
+                    print("Uso: setclearence <utilizador> <PUBLIC|CONFIDENTIAL|SECRET|TOP_SECRET>")
                 else:
-                    current_user = get_current_user()
-                    set_clearance_level(current_user, args[0], args[1])
+                    set_clearence(args[0], args[1])
+            elif command == "exit":
+                print("A sair do cliente.")
+                break
             else:
                 print(f"Comando inválido: {command}")
         except KeyboardInterrupt:
