@@ -75,6 +75,12 @@ Vale ressaltar que todas as ações significativas são registadas num ficheiro 
 
 A execução envolve dois processos principais: o servidor FUSE e o cliente.
 
+0.  **Dependêcias:**
+    Instale os seguintes pacotes:
+    ```bash
+    fusepy
+    python-dotenv
+    ```
 1.  **Iniciar o Servidor FUSE (`fuse_main.py`):**
     Abra um terminal e execute:
     ```bash
