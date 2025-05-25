@@ -6,9 +6,9 @@ Este projeto implementa um sistema de ficheiros seguro utilizando FUSE (Filesyst
 
 O sistema de ficheiros virtualiza o acesso a um diretório existente no sistema operativo, aplicando regras de segurança que determinam se um utilizador pode ler, escrever, criar ou listar ficheiros e diretórios com base no seu nível de autorização (clearance) e no nível de classificação da informação.
 
-Foram implementadas adaptações ao modelo BLP clássico, como a introdução de "utilizadores de confiança" (trusted users) que possuem privilégios para realizar operações de "write-down" (escrever informação de um nível superior para um inferior), simulando um processo de desclassificação controlada. Todas as ações significativas são registadas num ficheiro de auditoria.
+Foram implementadas adaptações ao modelo BLP clássico, como a introdução de "utilizadores de confiança" (trusted users) que possuem privilégios para realizar operações de "write-down" (escrever informação de um nível superior para um inferior), simulando um processo de desclassificação controlada. Outra adaptação feita foi a de que um usúario mais alto clearance(top_secret) e de confiança pode alterar a confiança e a clearance de outros utilizadores, ou seja, um utilizado com essas duas características tem um grande poder sobre as informações. Isso vai contra uma das propriedades que o BLP assume que é "Principle of tranquility", especificamente o "strong tranquility", que diz que a classificação de sujeitos e objetos não é alterada durante o tempo de vida do sistema, basicamente retira a sua natureza estática, mas consideramos isso um adaptação necessária para que o sistema seja viável na prática.
 
-Este projeto foi desenvolvido como parte do Trabalho Prático 3, que visa explorar e implementar adaptações ao modelo Bell-LaPadula para endereçar algumas das suas limitações práticas.
+Vale ressaltar que todas as ações significativas são registadas num ficheiro de auditoria. Este projeto foi desenvolvido como parte do Trabalho Prático 3, que visa explorar e implementar adaptações ao modelo Bell-LaPadula para endereçar algumas das suas limitações práticas.
 
 ## Funcionalidades Principais
 
@@ -20,6 +20,7 @@ Este projeto foi desenvolvido como parte do Trabalho Prático 3, que visa explor
         * Utilizadores normais não podem escrever/criar ficheiros em níveis de classificação inferiores ao seu (para proteger a integridade da classificação).
         * **Utilizadores de Confiança (Trusted Users):** Podem realizar "write-down" e "create-down", permitindo a desclassificação controlada de informação.
     * **Write Up / Same Level:** Utilizadores podem escrever/criar ficheiros no seu próprio nível ou em níveis superiores (consistente com BLP para confidencialidade).
+    * **Alteração em status de utilizadores:** Utilizadores de confiança e `TOP_SECRET` podem alterar status de outros utilizadores.
 * **Autenticação de Utilizador:**
     * Simulada através de uma variável de ambiente `USER` definida num ficheiro `.env`.
     * O cliente permite "fazer login" para definir este utilizador.
@@ -35,9 +36,11 @@ Este projeto foi desenvolvido como parte do Trabalho Prático 3, que visa explor
         * `new <ficheiro>`: Cria um novo ficheiro ou sobrescreve um existente.
         * `add <ficheiro>`: Anexa conteúdo a um ficheiro (cria se não existir).
         * `rm <ficheiro>`: Remove um ficheiro.
+        * `setclearence <utilizador> <PUBLIC|CONFIDENTIAL|SECRET|TOP_SECRET>"`: Altera o nível de clearance de um usúario
+        * `settrust <utilizador> <true|false>`: Altera o nivel de confiança de um usúario.
         * `exit`: Sai do cliente.
 * **Auditoria:**
-    * Todas as tentativas de acesso (permitidas ou negadas) e operações significativas são registadas no ficheiro `audit.log` com timestamp, utilizador, ação, caminho e status.
+    * Todas as tentativas de acesso relevantes (permitidas ou negadas) e operações significativas são registadas no ficheiro `audit.log` com timestamp, utilizador, ação, caminho e status.
 * **Estrutura de Diretórios de Exemplo:**
     * O sistema é testado com uma estrutura de diretórios que reflete os níveis de segurança (ex: `data/secure_files/unclassified`, `data/secure_files/confidential`, etc.).
 
