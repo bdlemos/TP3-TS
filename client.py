@@ -1,6 +1,7 @@
 import os
 import json
 from dotenv import load_dotenv # Para carregar variáveis de ambiente do ficheiro .env
+from logger import log_action
 
 MOUNTPOINT = "/tmp/montagem" # Ponto de montagem para o sistema de ficheiros FUSE
 
@@ -251,12 +252,14 @@ def set_trust(user, value):
             return
         
         actually_user = os.getenv("USER", "unknown")
+        user_level = data.get(actually_user, {}).get("level", "")
         if actually_user not in data:
             print(f"[ERRO] Utilizador atual '{actually_user}' não encontrado no ficheiro de utilizadores.")
             return
         
         if data[actually_user].get("level", "") != "TOP_SECRET" or not data[actually_user].get("trusted", False):
             print("[ERRO] Apenas utilizadores TOP_SECRET e de confiança podem alterar o estado de confiança.")
+            log_action("set_trust", user_level, " ", f"Usuário {actually_user} não autorizado a alterar confiança de {user}")
             return
 
         if value.lower() not in ["true", "false"]:
@@ -268,12 +271,13 @@ def set_trust(user, value):
         with open(user_data_path, "w") as f:
             json.dump(data, f, indent=4)
         
+        log_action("set_trust", user_level, " ", f"Estado de confiança de {user} atualizado para {data[user]['trusted']}")
         print(f"[INFO] Estado de confiança de '{user}' atualizado para {data[user]['trusted']}.")
     except Exception as e:
         print(f"[ERRO] Ocorreu um erro ao atualizar o estado de confiança: {e}")
 
 
-def set_clearence(user, value):
+def set_clearance(user, value):
     """
     Altera 'nivel' de um utilizador no ficheiro users.json.
     """
@@ -286,15 +290,17 @@ def set_clearence(user, value):
             return
         
         actually_user = os.getenv("USER", "unknown")
+        user_level = data.get(actually_user, {}).get("level", "")
         if actually_user not in data:
             print(f"[ERRO] Utilizador atual '{actually_user}' não encontrado no ficheiro de utilizadores.")
             return
         
         if data[actually_user].get("level", "") != "TOP_SECRET" or not data[actually_user].get("trusted", False):
+            log_action("set_clearance", user_level, " ", f"Usuário {actually_user} não autorizado a alterar clearance de {user}")
             print("[ERRO] Apenas utilizadores TOP_SECRET e de confiança podem alterar o estado de confiança.")
             return
 
-        niveis_validos = ["PUBLIC", "CONFIDENTIAL", "SECRET", "TOP_SECRET"]
+        niveis_validos = ["UNCLASSIFIED", "CONFIDENTIAL", "SECRET", "TOP_SECRET"]
         if value.upper() not in niveis_validos:
             print(f"[ERRO] Nível de acesso inválido: '{value}'. Usa um dos seguintes: {', '.join(niveis_validos)}.")
             return
@@ -304,6 +310,7 @@ def set_clearence(user, value):
         with open(user_data_path, "w") as f:
             json.dump(data, f, indent=4)
         
+        log_action("set_clearance", user_level, " ", f"Nível de acesso de {user} atualizado para {data[user]['level']}")
         print(f"[INFO] Nível de acesso de '{user}' atualizado para {data[user]['level']}.")
     except Exception as e:
         print(f"[ERRO] Ocorreu um erro ao atualizar o nível de acesso: {e}")
@@ -359,11 +366,11 @@ def main():
                     print("Uso: settrust <utilizador> <true|false>")
                 else:
                     set_trust(args[0], args[1])
-            elif command == "setclearence":
+            elif command == "setclearance":
                 if len(args) != 2:
                     print("Uso: setclearence <utilizador> <PUBLIC|CONFIDENTIAL|SECRET|TOP_SECRET>")
                 else:
-                    set_clearence(args[0], args[1])
+                    set_clearance(args[0], args[1])
             elif command == "exit":
                 print("A sair do cliente.")
                 break
