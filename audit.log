@@ -1,0 +1,12 @@
+2025-05-25 22:21:51.392386 | admin - TOP_SECRET (user) | access | data/secure_files/ | GRANTED
+2025-05-25 22:21:56.678555 | joao - CONFIDENTIAL (user) | readdir_entry_filter | data/secure_files/secret | GRANTED (Entry Level: SECRET - Higher)
+2025-05-25 22:21:56.678784 | joao - CONFIDENTIAL (user) | readdir_entry_filter | data/secure_files/top_secret | GRANTED (Entry Level: TOP_SECRET - Higher)
+2025-05-25 22:21:56.678963 | joao - CONFIDENTIAL (user) | readdir | data/secure_files/ | GRANTED
+2025-05-25 22:22:02.898196 | joao - CONFIDENTIAL (user) | access | data/secure_files/confidential | GRANTED
+2025-05-25 22:22:08.156526 | joao - CONFIDENTIAL (user) | access | data/secure_files/ | GRANTED
+2025-05-25 22:22:12.285315 | joao - CONFIDENTIAL (user) | access | data/secure_files/secret | DENIED (File Level: SECRET - Higher)
+2025-05-25 22:24:02.487890 | joao - CONFIDENTIAL (user) | access | data/secure_files/ | GRANTED
+2025-05-25 22:24:13.456077 | bernardo - TOP_SECRET (user) | access | data/secure_files/top_secret | GRANTED
+2025-05-25 22:24:29.218465 | bernardo - TOP_SECRET (user) | access | data/secure_files/ | GRANTED
+2025-05-25 22:24:32.107144 | bernardo - TOP_SECRET (user) | access | data/secure_files/ | GRANTED
+2025-05-25 22:25:02.883632 | bernardo - TOP_SECRET (user) | create | data/secure_files/secret/teste.txt | DENIED (No Create Down - Not Trusted - Intended Level: SECRET)

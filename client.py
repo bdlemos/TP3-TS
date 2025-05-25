@@ -1,6 +1,6 @@
 import os
 import json
-from dotenv import load_dotenv # Para carregar variáveis de ambiente do ficheiro .env
+from dotenv import load_dotenv
 from logger import log_action
 
 MOUNTPOINT = "/tmp/montagem" # Ponto de montagem para o sistema de ficheiros FUSE
@@ -41,23 +41,18 @@ def resolve_path(user_input_path):
         base = current_relative_path
         path_to_join = user_input_path
 
-    # Constrói o caminho completo relativo ao MOUNTPOINT
-    # os.path.join ignora 'base' se 'path_to_join' for um caminho absoluto (não é o caso aqui)
     combined_path = os.path.join(base, path_to_join)
     
     # Normaliza o caminho (resolve '..' e '.')
     normalized_path = os.path.normpath(combined_path)
 
     # Garante que o caminho não saia da raiz do MOUNTPOINT (ex: "cd ../../../../../tmp")
-    # Um caminho normalizado começando com ".." indica que saiu da raiz.
-    # Também, se for exatamente "..", e current_relative_path for "", significa tentar sair da raiz.
     if normalized_path == ".." and not current_relative_path: # Tentando sair da raiz
         return "" # Volta para a raiz
-    if normalized_path.startswith(".."): # Se ainda começa com ".." após normpath, saiu da estrutura
+    if normalized_path.startswith(".."):
         print("[AVISO] Tentativa de aceder fora da raiz do ponto de montagem foi bloqueada.")
-        return current_relative_path # Permanece no diretório atual em caso de tentativa de fuga
+        return current_relative_path
 
-    # Remove um possível "./" no início se o caminho for o próprio root
     if normalized_path == ".":
         normalized_path = ""
         
@@ -106,7 +101,7 @@ def list_files_current_dir():
             elif os.path.isfile(entry_os_path):
                 print(f"  [FILE] {entry_name}")
             else:
-                print(f"  [OTHER] {entry_name}") # Links simbólicos, etc.
+                print(f"  [OTHER] {entry_name}")
                 
     except PermissionError:
         print(f"  [ERRO] Permissão negada para aceder ao diretório: {current_relative_path if current_relative_path else '/'}")
@@ -259,7 +254,7 @@ def set_trust(user, value):
         
         if data[actually_user].get("level", "") != "TOP_SECRET" or not data[actually_user].get("trusted", False):
             print("[ERRO] Apenas utilizadores TOP_SECRET e de confiança podem alterar o estado de confiança.")
-            log_action("set_trust", user_level, " ", f"Usuário {actually_user} não autorizado a alterar confiança de {user}")
+            log_action("set_trust", user_level, " ", f"User {actually_user} not authorized to change trust status of {user}")
             return
 
         if value.lower() not in ["true", "false"]:
@@ -271,7 +266,7 @@ def set_trust(user, value):
         with open(user_data_path, "w") as f:
             json.dump(data, f, indent=4)
         
-        log_action("set_trust", user_level, " ", f"Estado de confiança de {user} atualizado para {data[user]['trusted']}")
+        log_action("set_trust", user_level, " ", f"Trust status of {user} updated to {data[user]['trusted']}")
         print(f"[INFO] Estado de confiança de '{user}' atualizado para {data[user]['trusted']}.")
     except Exception as e:
         print(f"[ERRO] Ocorreu um erro ao atualizar o estado de confiança: {e}")
@@ -296,7 +291,7 @@ def set_clearance(user, value):
             return
         
         if data[actually_user].get("level", "") != "TOP_SECRET" or not data[actually_user].get("trusted", False):
-            log_action("set_clearance", user_level, " ", f"Usuário {actually_user} não autorizado a alterar clearance de {user}")
+            log_action("set_clearance", user_level, " ", f"User {actually_user} not authorized to change clearance of {user}")
             print("[ERRO] Apenas utilizadores TOP_SECRET e de confiança podem alterar o estado de confiança.")
             return
 
@@ -310,7 +305,7 @@ def set_clearance(user, value):
         with open(user_data_path, "w") as f:
             json.dump(data, f, indent=4)
         
-        log_action("set_clearance", user_level, " ", f"Nível de acesso de {user} atualizado para {data[user]['level']}")
+        log_action("set_clearance", user_level, " ", f"Clearance level of {user} updated to {data[user]['level']}")
         print(f"[INFO] Nível de acesso de '{user}' atualizado para {data[user]['level']}.")
     except Exception as e:
         print(f"[ERRO] Ocorreu um erro ao atualizar o nível de acesso: {e}")
@@ -321,12 +316,12 @@ def main():
     Função principal do cliente: faz login e entra num loop de comandos.
     """
     global current_relative_path
-    login() # Solicita o login no início
+    login()
 
     if not os.path.exists(MOUNTPOINT) or not os.path.isdir(MOUNTPOINT):
         print(f"[AVISO CRÍTICO] O ponto de montagem '{MOUNTPOINT}' não existe ou não é um diretório.")
         print("Por favor, certifique-se de que o sistema de ficheiros FUSE está montado corretamente ANTES de executar o cliente.")
-        return # Sair se o mountpoint não estiver pronto
+        return
 
     while True:
         try:

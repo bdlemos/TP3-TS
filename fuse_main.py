@@ -11,15 +11,13 @@ SECURITY_LEVELS = ["UNCLASSIFIED", "CONFIDENTIAL", "SECRET", "TOP_SECRET"]
 class SecurePassthrough(Operations):
     def __init__(self, root):
         self.root = root
-        # As credenciais do usuário são obtidas por operação para refletir mudanças no .env
+        
 
     def _get_current_user_credentials(self):
-        # Helper para buscar as credenciais atuais
         user_level, is_trusted = get_user_credentials()
         return user_level, is_trusted
 
     def _full_path(self, partial):
-        # Converte um caminho parcial (relativo ao mountpoint) para um caminho completo no sistema de ficheiros subjacente.
         if partial.startswith("/"):
             partial = partial[1:]
         path = os.path.join(self.root, partial)
@@ -34,11 +32,8 @@ class SecurePassthrough(Operations):
         O 'path' aqui pode ser o full_path ou o path relativo ao mountpoint.
         Para consistência, é melhor usar o full_path do sistema de ficheiros real.
         """
-        # Normaliza o caminho para evitar problemas com barras extras ou relativas
         normalized_path = os.path.normpath(path).lower()
-        
-        # Itera dos níveis mais altos para os mais baixos para evitar correspondências parciais incorretas
-        # (ex: /top_secret/secretaria -> deve ser top_secret, não secret)
+
         for level in reversed(SECURITY_LEVELS): 
             if f"/{level.lower()}/" in normalized_path or \
                normalized_path.endswith(f"/{level.lower()}") or \
@@ -235,12 +230,11 @@ class SecurePassthrough(Operations):
             log_action("unlink", f"{user_level} (user)", full_path, f"DENIED (No Delete Up - File Level: {file_level})")
             raise FuseOSError(errno.EACCES)
     
-        # Para este projeto, focar no BLP: se user_level >= file_level, a exclusão é permitida para confidencialidade.
         
         try:
             result = os.unlink(full_path)
             log_action("unlink", f"{user_level} (user)", full_path, "SUCCESS (OS Unlink Succeeded)")
-            return result # Geralmente 0 em sucesso
+            return result
         except FileNotFoundError:
             log_action("unlink", f"{user_level} (user)", full_path, "ERROR_OS (File Not Found)")
             raise FuseOSError(errno.ENOENT)
@@ -252,9 +246,6 @@ class SecurePassthrough(Operations):
 def main(mountpoint, root):
     print(f"[INFO] A montar o diretório '{root}' em '{mountpoint}'")
     print(f"[INFO] Níveis de Segurança Definidos no FUSE: {SECURITY_LEVELS}")
-    
-    # Uma chamada inicial para get_user_credentials para verificar o estado ao iniciar o FUSE.
-    # O usuário real para as operações FUSE será determinado pelo .env no momento da operação.
     print("[INFO] Variável de ambiente USER não definida no arranque do FUSE. O login via cliente definirá o usuário para as operações.")
 
     FUSE(SecurePassthrough(root), mountpoint, nothreads=True, foreground=True)
