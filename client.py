@@ -163,7 +163,7 @@ def read_file(path_input):
         print(f"[ERRO] Ocorreu um erro ao ler o ficheiro: {e}")
 
 
-def write_file_or_append(mode):
+def write_file_or_append(mode, path_input):
     """
     Função genérica para escrever ('w') ou anexar ('a') a um ficheiro.
     """
@@ -171,7 +171,7 @@ def write_file_or_append(mode):
     action_gerund = "escrita" if mode == "w" else "anexação"
     action_past = "escrito" if mode == "w" else "anexado"
 
-    path_input = input(f"Caminho do ficheiro para {action}: ")
+    # path_input = input(f"Caminho do ficheiro para {action}: ")
     resolved_relative_path = resolve_path(path_input)
     full_os_path = get_full_path_in_os(resolved_relative_path)
 
@@ -198,7 +198,7 @@ def write_file_or_append(mode):
         print(f"Conteúdo {action_past} ao ficheiro '{resolved_relative_path}' com sucesso.")
     except PermissionError:
         print(f"[ERRO] Permissão negada para {action} o ficheiro: {path_input} (em {full_os_path})")
-    except IsADirectoryError: # Deve ser apanhado antes, mas por segurança
+    except IsADirectoryError: 
         print(f"[ERRO] O caminho especificado é um diretório: {path_input}")
     except Exception as e:
         print(f"[ERRO] Ocorreu um erro durante a {action_gerund} do ficheiro: {e}")
@@ -347,9 +347,15 @@ def main():
                 else:
                     read_file(args[0]) 
             elif command == "new":
-                write_file_or_append(mode="w")
+                if not args:
+                    print("Uso: new <ficheiro>")
+                else:
+                    write_file_or_append(mode="w", path_input=args[0]) 
             elif command == "add":
-                write_file_or_append(mode="a")
+                if not args:
+                    print("Uso: add <ficheiro>")
+                else:
+                    write_file_or_append(mode="a", path_input=args[0])
             elif command == "rm":
                 delete_file()
             elif command == "login":
