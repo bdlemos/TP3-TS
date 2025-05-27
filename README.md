@@ -64,11 +64,12 @@ Vale ressaltar que todas as ações significativas são registadas num ficheiro 
 │   │    │   └── top.txt
 │   │    └── unclassified/
 │   │        └── info.txt
-│   └──users.json
+│   └──users.json       # Não simulado pelo FUSE
 ├── fuse_main.py        # Implementação principal do sistema de ficheiros FUSE
 ├── logger.py           # Módulo para registo de auditoria
 ├── README.md           # Este ficheiro
-└── .env                # Ficheiro (criado pelo cliente) para armazenar o USER atual (não versionar)
+├──.env                 # Ficheiro (criado pelo cliente) para armazenar o USER atual (não versionar)
+├── makefile            # Monta o sistema FUSE
 └── audit.log           # Ficheiro de log de auditoria (criado em tempo de execução)
 ```
 ## Como Executar
